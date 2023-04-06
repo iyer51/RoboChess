@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5x5 Chessboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js" integrity="sha512-1vM2zilU8KXFMN7GGlHLO2YHdIVMK8Hk/4Mj4KmkQ4Tm/bN8TvzWvyC+iOgFdYJqDvHxq0A0yJxACEnyQiInBQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="chessboard">
+    <div class="square" data-piece="♖"></div>
+    <div class="square" data-piece="♘"></div>
+    <div class="square" data-piece="♗"></div>
+    <div class="square" data-piece="♔"></div>
+    <div class="square" data-piece="♕"></div>
+
+    <div class="square" data-piece="♙"></div>
+    <div class="square" data-piece="♙"></div>
+    <div class="square" data-piece="♙"></div>
+    <div class="square" data-piece="♙"></div>
+    <div class="square" data-piece="♙"></div>
+
+    <div class="square"></div>
+    <div class="square"></div>
+    <div class="square"></div>
+    <div class="square"></div>
+    <div class="square"></div>
+
+    <div class="square" data-piece="♟︎"></div>
+    <div class="square" data-piece="♟︎"></div>
+    <div class="square" data-piece="♟︎"></div>
+    <div class="square" data-piece="♟︎"></div>
+    <div class="square" data-piece="♟︎"></div>
+
+    <div class="square" data-piece="♜"></div>
+    <div class="square" data-piece="♞"></div>
+    <div class="square" data-piece="♝"></div>
+    <div class="square" data-piece="♚"></div>
+    <div class="square" data-piece="♛"></div>
+  </div>
+  <script src="scripts.js"></script>
+  <script>
+    const initialState = [
+      "♖", "♘", "♗", "♔", "♕",
+      "♙", "♙", "♙", "♙", "♙",
+      "", "", "", "", "",
+      "♟︎", "♟︎", "♟︎", "♟︎", "♟︎",
+      "♜", "♞", "♝", "♚", "♛"
+    ];
+
+    function createChessboard() {
+      const chessboard = document.getElementById("chessboard");
+
+      for (let i = 0; i < 25; i++) {
+        const square = document.createElement("div");
+        square.className = "square";
+        square.setAttribute("data-piece", initialState[i]);
+        chessboard.appendChild(square);
+      }
+    }
+
+    createChessboard();
+
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+    socket.on('connect', function() {
+      socket.emit('request_update');
+    });
+
+    socket.on('update_board', function(board_state) {
+        // Process the board_state array (5x5)
+        const squares = document.getElementsByClassName("square");
+        for (let i = 0; i < 5; i++) {
+            for (let j = 0; j < 5; j++) {
+                const index = i * 5 + j;
+                const has_piece = board_state[index];
+
+                if (has_piece) {
+                    // Set the 'data-piece' attribute to the corresponding chess symbol
+                    squares[index].setAttribute("data-piece", initialState[index]);
+                } else {
+                    // If no piece is present, remove the 'data-piece' attribute
+                    squares[index].removeAttribute("data-piece");
+                }
+            }
+        }
+    });
+  </script>
+</body>
+</html>
