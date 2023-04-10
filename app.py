@@ -1,24 +1,42 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 import serial
 
-# Initialize Flask app and serial port
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
+
 ser = serial.Serial('/dev/ttyACM0', 9600)
 
-# Define route to handle move request
-@app.route('/move', methods=['POST'])
-def move():
-    # Parse move info from POST request
-    from_square = request.form['from']
-    to_square = request.form['to']
+@socketio.on('connect')
+def test_connect():
+    print('Client connected')
+    send_board_state()
 
-    # Send move info to STM32 board via serial port
-    move_data = from_square + to_square
-    ser.write(move_data.encode())
+@socketio.on('disconnect')
+def test_disconnect():
+    print('Client disconnected')
 
-    # Return success message to client
-    return 'Move sent to robot arm!'
+@socketio.on('piece_moved')
+def piece_moved(move):
+    print(f'Piece moved from {move["from"]} to {move["to"]}')
+    send_board_state()
 
-# Run the Flask app
+@socketio.on('reset_board')
+def reset_board():
+    print('Board reset')
+    send_board_state()
+
+def send_board_state():
+    board_state = []
+    for i in range(25):
+        board_state.append(int(ser.readline().decode('ascii').strip()))
+    print(board_state)
+    socketio.emit('update_board', board_state)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    socketio.run(app)
