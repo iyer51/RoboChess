@@ -26,6 +26,15 @@ const handleClick = (event) => {
     const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
     const toIndex = Array.from(square.parentElement.children).indexOf(square);
     socket.emit('piece_moved', { from: fromIndex, to: toIndex });
+
+    //Send move data to STM
+    const moveData = { from: fromIndex, to: toIndex };
+    fetch('/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(moveData)
+    }).then(response => console.log(response));
+
   } else if (selectedSquare && square.hasAttribute('data-piece')) {
     // Check if selected piece can capture opponent's piece on target square
     const selectedPiece = selectedSquare.getAttribute('data-piece');
