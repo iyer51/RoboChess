@@ -7,37 +7,75 @@ const deselectSquare = () => {
   }
 };
 
+let lastMove = null;
+
 const handleClick = (event) => {
-    const square = event.target;
-  
-    if (!selectedSquare && square.hasAttribute('data-piece')) {
-      selectedSquare = square;
-      square.classList.add('selected');
-    } else if (selectedSquare === square) {
-      deselectSquare();
-    } else if (selectedSquare && (!square.hasAttribute('data-piece') || square.getAttribute('data-piece') === '')) {
+  const square = event.target;
+
+  if (!selectedSquare && square.hasAttribute('data-piece')) {
+    selectedSquare = square;
+    square.classList.add('selected');
+  } else if (selectedSquare === square) {
+    deselectSquare();
+  } else if (selectedSquare && (!square.hasAttribute('data-piece') || square.getAttribute('data-piece') === '')) {
+    // Move selected piece to target square
+    square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
+    selectedSquare.removeAttribute('data-piece');
+    deselectSquare();
+
+    const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
+    const toIndex = Array.from(square.parentElement.children).indexOf(square);
+    socket.emit('piece_moved', { from: fromIndex, to: toIndex });
+  } else if (selectedSquare && square.hasAttribute('data-piece')) {
+    // Check if selected piece can capture opponent's piece on target square
+    const selectedPiece = selectedSquare.getAttribute('data-piece');
+    const opponentPiece = square.getAttribute('data-piece');
+    if (selectedPiece && opponentPiece && selectedPiece !== opponentPiece) {
+      // Remove opponent's piece from the board
+      const opponentPieceType = opponentPiece.charAt(1);
+      const opponentPieceColor = opponentPiece.charAt(0);
+      const opponentPieceSquare = document.querySelector(`[data-piece="${opponentPiece}"]`);
+      if (opponentPieceSquare && opponentPieceColor === 'w') {
+        opponentPieceSquare.removeAttribute('data-piece');
+      }
       // Move selected piece to target square
       square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
       selectedSquare.removeAttribute('data-piece');
-      deselectSquare();
-    } else if (selectedSquare && square.hasAttribute('data-piece')) {
-      // Check if selected piece can capture opponent's piece on target square
-      const selectedPiece = selectedSquare.getAttribute('data-piece');
-      const opponentPiece = square.getAttribute('data-piece');
-      if (selectedPiece && opponentPiece && selectedPiece !== opponentPiece) {
-        // Remove opponent's piece from the board
-        square.removeAttribute('data-piece');
-        // TODO: Add logic to remove opponent's piece from the game
-        // Move selected piece to target square
-        square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
-        selectedSquare.removeAttribute('data-piece');
-      }
-      deselectSquare();
     }
-  };
+    deselectSquare();
+  }
+};
+
+
 
 const squares = document.querySelectorAll('.square');
 squares.forEach((square) => {
   square.addEventListener('click', handleClick);
 });
 
+let previousBoardState = null;
+
+socket.on('update_board', function (boardState) {
+  if (!previousBoardState) {
+    previousBoardState = boardState;
+    return;
+  }
+
+  for (let i = 0; i < 25; i++) {
+    if (boardState[i] === 1 && previousBoardState[i] === 0) {
+      // A piece was moved to this square
+      const toSquare = squares[i];
+      const fromIndex = previousBoardState.indexOf(1);
+      const fromSquare = squares[fromIndex];
+      const piece = fromSquare.getAttribute('data-piece');
+      toSquare.setAttribute('data-piece', piece);
+      fromSquare.removeAttribute('data-piece');
+
+      previousBoardState = boardState;
+      return;
+    }
+  }
+
+  // If we got here, no pieces were moved
+  previousBoardState = boardState;
+});
