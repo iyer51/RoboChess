@@ -32,12 +32,12 @@ const handleClick = (event) => {
     const x2 = toIndex % 5 + 1;
     const y2 = Math.floor(toIndex / 5) + 1;
 
-    const moveData = `${x1},${y1},${x2},${y2}`;
-    fetch('/move', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(moveData)
-    }).then(response => console.log(response));
+    const moveData = { pick: fromIndex, place: toIndex };
+  fetch('/move', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(moveData)
+  }).then(response => console.log(response));
   } else if (selectedSquare && square.hasAttribute('data-piece')) {
     // Check if selected piece can capture opponent's piece on target square
     const selectedPiece = selectedSquare.getAttribute('data-piece');
