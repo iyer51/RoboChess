@@ -25,16 +25,19 @@ const handleClick = (event) => {
 
     const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
     const toIndex = Array.from(square.parentElement.children).indexOf(square);
-    socket.emit('piece_moved', { from: fromIndex, to: toIndex });
 
-    //Send move data to STM
-    const moveData = { from: fromIndex, to: toIndex };
+    // Calculate coordinates of selected piece and target square
+    const x1 = fromIndex % 5 + 1;
+    const y1 = Math.floor(fromIndex / 5) + 1;
+    const x2 = toIndex % 5 + 1;
+    const y2 = Math.floor(toIndex / 5) + 1;
+
+    const moveData = `${x1},${y1},${x2},${y2}`;
     fetch('/move', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(moveData)
     }).then(response => console.log(response));
-
   } else if (selectedSquare && square.hasAttribute('data-piece')) {
     // Check if selected piece can capture opponent's piece on target square
     const selectedPiece = selectedSquare.getAttribute('data-piece');
@@ -50,6 +53,21 @@ const handleClick = (event) => {
       // Move selected piece to target square
       square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
       selectedSquare.removeAttribute('data-piece');
+
+      // Calculate coordinates of selected piece and target square
+      const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
+      const toIndex = Array.from(square.parentElement.children).indexOf(square);
+      const x1 = fromIndex % 5 + 1;
+      const y1 = Math.floor(fromIndex / 5) + 1;
+      const x2 = toIndex % 5 + 1;
+      const y2 = Math.floor(toIndex / 5) + 1;
+
+      const moveData = `${x1},${y1},${x2},${y2}`;
+      fetch('/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(moveData)
+      }).then(response => console.log(response));
     }
     deselectSquare();
   }
