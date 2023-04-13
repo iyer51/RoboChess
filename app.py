@@ -6,7 +6,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-ser = serial.Serial('/dev/ttyACM0', 9600)
+ser = serial.Serial('/dev/tty1', 9600)
 
 @socketio.on('connect')
 def test_connect():
