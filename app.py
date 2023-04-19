@@ -21,6 +21,15 @@ def test_disconnect():
 def piece_moved(move):
     print(f'Piece moved from {move["from"]} to {move["to"]}')
     send_board_state()
+    
+@app.route('/move', methods=['POST'])
+def move():
+    move_data = request.json
+    from_coord = (move_data['pick'] % 5 + 1, move_data['pick'] // 5 + 1)
+    to_coord = (move_data['place'] % 5 + 1, move_data['place'] // 5 + 1)
+    move_str = f'Piece moved from {from_coord} to {to_coord}'.encode('utf-8')
+    ser.write(move_str)
+    return 'Move received'
 
 @socketio.on('reset_board')
 def reset_board():
