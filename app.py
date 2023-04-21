@@ -64,6 +64,19 @@ def move():
     
     return 'Move received'
 
+@app.route('/get_data', methods=['GET'])
+def get_data():
+    # Read data from the microcontroller
+    data = ser.readline().decode('utf-8').strip()
+    # Parse the data into a dictionary of coordinates
+    coord_data = {
+        "pick": [int(data[0]), int(data[1])],
+        "place": [int(data[2]), int(data[3])]
+    }
+    # Emit the data to the website
+    socketio.emit('update_board', coord_data)
+    # Return a response to the client
+    return "Data received and emitted to website."
 
 if __name__ == '__main__':
     eventlet.wsgi.server(eventlet.listen(('128.46.96.239', 5000)), app)
