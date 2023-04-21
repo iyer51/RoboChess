@@ -44,13 +44,11 @@ def reset_board():
 
 def send_board_state():
     print('Sending board state')
-    move_data = ser.readline().decode('utf-8').strip()
-    if move_data.startswith("Move "):
-        move_data = move_data[5:]
-        coords = move_data.split(" to ")
-        from_coord = tuple(map(int, coords[0].split(",")))
-        to_coord = tuple(map(int, coords[1].split(",")))
-        socketio.emit('update', {"from": from_coord, "to": to_coord})
+    pick_coord = tuple(move_data['pick'])
+    place_coord = tuple(move_data['place'])
+    board_state = {coord: None for coord in squares}
+    board_state[place_coord] = board_state[pick_coord]
+    del board_state[pick_coord]
     
     
 @app.route('/move', methods=['POST'])
