@@ -5,48 +5,56 @@ import serial
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
-
 ser = serial.Serial('/dev/ttyACM0', 9600)
 
-# Function to write board state to a text file
-def write_board_state(board_state):
-    with open('board_state.txt', 'w') as file:
-        file.write(','.join(map(str, board_state)) + '\n')
+board_state = []
 
-# Function to read board state from a text file
-def read_board_state():
-    with open('board_state.txt', 'r') as file:
-        board_state_str = file.read().strip()
-    return list(map(int, board_state_str.split(',')))
+# Write move data to a text file
+def write_move_data(move_data):
+    with open('move_data.txt', 'w') as f:
+        for move in move_data:
+            f.write(f'{move["pick"]},{move["place"]}\n')
 
+# Read move data from a text file
+def read_move_data():
+    move_data = []
+    with open('move_data.txt', 'r') as f:
+        for line in f:
+            move = {}
+            pick, place = line.strip().split(',')
+            move['pick'] = int(pick)
+            move['place'] = int(place)
+            move_data.append(move)
+    return move_data
+
+# Update the board state based on move data
+def update_board_state(move_data):
+    squares = [0] * 25
+    for move in move_data:
+        squares[move['place']] = squares[move['pick']]
+        squares[move['pick']] = 0
+    return squares
+
+# Route for the main page
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/get_data', methods=['GET'])
-def get_data():
-    # Read data from the microcontroller
-    data = ser.readline().decode('utf-8').strip()
-    # Parse the data into a dictionary of coordinates
-    coord_data = {
-        "pick": [int(data[0]), int(data[1])],
-        "place": [int(data[2]), int(data[3])]
-    }
-    # Update the board state based on the received data
-    board_state = read_board_state()
-    pick_index = coord_data["pick"][0] - 1
-    place_index = coord_data["place"][0] - 1
-    board_state[place_index] = board_state[pick_index]
-    board_state[pick_index] = 0
-    write_board_state(board_state)
-    # Emit the updated board state to the website
-    socketio.emit('update', board_state)
-    # Return a response to the client
-    return "Data received and emitted to website."
+# Route for getting the board state
+@app.route('/get_board_state', methods=['GET'])
+def get_board_state():
+    global board_state
+    return {'board_state': board_state}
+
+# Route for receiving move data from the client
+@app.route('/move', methods=['POST'])
+def move():
+    global board_state
+    move_data = request.json
+    write_move_data(move_data)
+    board_state = update_board_state(read_move_data())
+    socketio.emit('update_board', {'board_state': board_state})
+    return {'success': True}
 
 if __name__ == '__main__':
-    # Initialize the board state to all 1's
-    board_state = [1] * 5
-    write_board_state(board_state)
-    # Run the app
-    socketio.run(app, host='0.0.0.0', port=5000)
+    app.run(debug=True)
