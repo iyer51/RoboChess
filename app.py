@@ -1,68 +1,52 @@
-from flask import Flask, request, render_template
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO
 import serial
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-# Initialize the board state as an array of 5 ones
-board_state = [1, 1, 1, 1, 1]
+ser = serial.Serial('/dev/ttyACM0', 9600)
 
-# Define a function to update the board state based on a move from the microcontroller
-def update_board_state(pick_index, place_index):
-    # Update the board state based on the pick and place indices
-    board_state[pick_index] = 0
-    board_state[place_index] = 1
+# Function to write board state to a text file
+def write_board_state(board_state):
+    with open('board_state.txt', 'w') as file:
+        file.write(','.join(map(str, board_state)) + '\n')
 
-    # Emit the updated board state to the website
-    emit('update', board_state, broadcast=True)
+# Function to read board state from a text file
+def read_board_state():
+    with open('board_state.txt', 'r') as file:
+        board_state_str = file.read().strip()
+    return list(map(int, board_state_str.split(',')))
 
-# Define a function to read moves from a text file and update the board state accordingly
-def read_moves_file():
-    # Open the moves file
-    with open('moves.txt', 'r') as f:
-        # Read the lines in the file
-        lines = f.readlines()
-
-        # Iterate over the lines and update the board state
-        for line in lines:
-            # Split the line into the pick and place indices
-            pick_index, place_index = map(int, line.strip().split(','))
-
-            # Update the board state
-            update_board_state(pick_index, place_index)
-
-# Route for the home page
 @app.route('/')
 def index():
-    # Render the template
-    return render_template('index.html', board_state=board_state)
+    return render_template('index.html')
 
-# Route for receiving moves from the website
-@app.route('/move', methods=['POST'])
-def move():
-    # Get the pick and place indices from the request data
-    data = request.get_json()
-    pick_index = data['pick'] - 1
-    place_index = data['place'] - 1
-
-    # Update the board state and emit the update to the website
-    update_board_state(pick_index, place_index)
-
-    # Write the move to the moves file
-    with open('moves.txt', 'a') as f:
-        f.write(f'{pick_index},{place_index}\n')
-
-    # Return a success response
-    return 'Move successful'
+@app.route('/get_data', methods=['GET'])
+def get_data():
+    # Read data from the microcontroller
+    data = ser.readline().decode('utf-8').strip()
+    # Parse the data into a dictionary of coordinates
+    coord_data = {
+        "pick": [int(data[0]), int(data[1])],
+        "place": [int(data[2]), int(data[3])]
+    }
+    # Update the board state based on the received data
+    board_state = read_board_state()
+    pick_index = coord_data["pick"][0] - 1
+    place_index = coord_data["place"][0] - 1
+    board_state[place_index] = board_state[pick_index]
+    board_state[pick_index] = 0
+    write_board_state(board_state)
+    # Emit the updated board state to the website
+    socketio.emit('update', board_state)
+    # Return a response to the client
+    return "Data received and emitted to website."
 
 if __name__ == '__main__':
-    # Start the serial connection with the microcontroller
-    ser = serial.Serial('/dev/ttyACM0', 9600)
-
-    # Start the application
-    socketio.run(app)
-
-    # Read moves from the file
-    read_moves_file()
+    # Initialize the board state to all 1's
+    board_state = [1] * 5
+    write_board_state(board_state)
+    # Run the app
+    socketio.run(app, host='0.0.0.0', port=5000)
