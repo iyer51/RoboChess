@@ -82,26 +82,16 @@ squares.forEach((square) => {
 
 let previousBoardState = null;
 
-socket.on('update_board', function (boardState) {
-  if (!previousBoardState) {
-    previousBoardState = boardState;
-    return;
-  }
-
-  for (let i = 0; i < 25; i++) {
-    if (boardState[i] === 1 && previousBoardState[i] === 0) {
-      // A piece was moved to this square
-      const toSquare = squares[i];
-      const fromIndex = previousBoardState.indexOf(1);
-      const fromSquare = squares[fromIndex];
-      const piece = fromSquare.getAttribute('data-piece');
-      toSquare.setAttribute('data-piece', piece);
-      fromSquare.removeAttribute('data-piece');
-
-      previousBoardState = boardState;
-      return;
-    }
-  }
+socket.on('update_board', function (moveData) {
+  const [x1, y1, x2, y2] = moveData.split(',');
+  const fromIndex = (y1 - 1) * 5 + (x1 - 1);
+  const toIndex = (y2 - 1) * 5 + (x2 - 1);
+  const fromSquare = squares[fromIndex];
+  const toSquare = squares[toIndex];
+  const piece = fromSquare.getAttribute('data-piece');
+  toSquare.setAttribute('data-piece', piece);
+  fromSquare.removeAttribute('data-piece');
+});
 
   // If we got here, no pieces were moved
   previousBoardState = boardState;
