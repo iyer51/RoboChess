@@ -1,3 +1,24 @@
+const socket = io.connect('http://<your_pi_ip_address>:5000');
+
+socket.on('connect', function() {
+  console.log('Connected to server');
+});
+
+socket.on('disconnect', function() {
+  console.log('Disconnected from server');
+});
+
+socket.on('update', function(boardState) {
+  const squares = document.querySelectorAll('.square');
+  for (let i = 0; i < squares.length; i++) {
+    if (boardState[i] === 0) {
+      squares[i].removeAttribute('data-piece');
+    } else {
+      squares[i].setAttribute('data-piece', boardState[i]);
+    }
+  }
+});
+
 let selectedSquare = null;
 
 const deselectSquare = () => {
