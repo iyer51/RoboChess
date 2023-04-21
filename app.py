@@ -68,13 +68,21 @@ def move():
 def get_data():
     # Read data from the microcontroller
     data = ser.readline().decode('utf-8').strip()
+    
     # Parse the data into a dictionary of coordinates
     coord_data = {
-        "pick": [int(data[0]), int(data[1])],
-        "place": [int(data[2]), int(data[3])]
+        "pick": [(int(data[0]) - 1) * 5 + int(data[1]) - 1],
+        "place": [(int(data[2]) - 1) * 5 + int(data[3]) - 1]
     }
-    # Emit the data to the website
-    socketio.emit('update_board', coord_data)
+    
+    # Convert the coordinates to a board state
+    board_state = [0] * 25
+    board_state[coord_data["pick"][0]] = 1
+    board_state[coord_data["place"][0]] = 2
+    
+    # Emit the board state to the website
+    socketio.emit('update_board', board_state)
+    
     # Return a response to the client
     return "Data received and emitted to website."
 
