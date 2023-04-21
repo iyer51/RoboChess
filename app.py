@@ -10,10 +10,21 @@ ser = serial.Serial('/dev/ttyACM0', 9600)
 board_state = []
 
 # Write move data to a text file
-def write_move_data(move_data):
-    with open('move_data.txt', 'w') as f:
-        for move in move_data:
-            f.write(f'{move["pick"]},{move["place"]}\n')
+@app.route('/get_data', methods=['GET'])
+def get_data():
+    # Read data from the microcontroller
+    data = ser.readline().decode('utf-8').strip()
+    # Parse the data into a dictionary of coordinates
+    coord_data = {
+        "pick": int(data[0]),
+        "place": int(data[1])
+    }
+    # Write the data to the move_data.txt file
+    with open('move_data.txt', 'a') as f:
+        f.write(f"{coord_data['pick']},{coord_data['place']}\n")
+    # Return a response to the client
+    return "Data received and written to file."
+
 
 # Read move data from a text file
 def read_move_data():
