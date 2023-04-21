@@ -1,23 +1,22 @@
-const socket = io.connect('http://<your_pi_ip_address>:5000');
 
-socket.on('connect', function() {
-  console.log('Connected to server');
-});
 
-socket.on('disconnect', function() {
-  console.log('Disconnected from server');
-});
+//socket.on('update', function(boardState) {
+  //const squares = document.querySelectorAll('.square');
+  //const boardStateArray = boardState.split(',').map(Number);
+  //console.log(boardState)
+  //for (i = 0; i < 5; i++){
+    //if(boardState[i] == 0){
+    //const fromSquare1 = squares[i+5];
+    //const toSquare1 = squares[i+10];
+    //console.log(i+5);
+    //console.log(i+10);
+  //}
+  //const piece = fromSquare1.getAttribute('data-piece');
+  //toSquare1.setAttribute('data-piece', piece);
+  //fromSquare1.removeAttribute('data-piece');
+//}
+//});
 
-socket.on('update', function(boardState) {
-  const squares = document.querySelectorAll('.square');
-  for (let i = 0; i < squares.length; i++) {
-    if (boardState[i] === 0) {
-      squares[i].removeAttribute('data-piece');
-    } else {
-      squares[i].setAttribute('data-piece', boardState[i]);
-    }
-  }
-});
 
 let selectedSquare = null;
 
@@ -32,6 +31,11 @@ let lastMove = null;
 
 const handleClick = (event) => {
   const square = event.target;
+  
+  if(!square.parentElement){
+    console.log('clicked element has no parent');
+    return;
+  }
 
   if (!selectedSquare && square.hasAttribute('data-piece')) {
     selectedSquare = square;
@@ -42,23 +46,25 @@ const handleClick = (event) => {
     // Move selected piece to target square
     square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
     selectedSquare.removeAttribute('data-piece');
-    deselectSquare();
-
-    const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
+    
+    
+    const fromIndex = selectedSquare ? Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare) : -1;
     const toIndex = Array.from(square.parentElement.children).indexOf(square);
-
+    deselectSquare();
     // Calculate coordinates of selected piece and target square
-    const x1 = fromIndex % 5 + 1;
-    const y1 = Math.floor(fromIndex / 5) + 1;
-    const x2 = toIndex % 5 + 1;
-    const y2 = Math.floor(toIndex / 5) + 1;
+    const y1 = fromIndex % 5 + 1;
+    const x1 = Math.floor(fromIndex / 5) + 1;
+    const y2 = toIndex % 5 + 1;
+    const x2 = Math.floor(toIndex / 5) + 1;
 
     const moveData = { pick: fromIndex, place: toIndex };
-  fetch('/move', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(moveData)
-  }).then(response => console.log(response));
+    fetch('http://128.46.96.239:5000/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(moveData)
+  }).then(response => console.log(fromIndex));
+    
+  
   } else if (selectedSquare && square.hasAttribute('data-piece')) {
     // Check if selected piece can capture opponent's piece on target square
     const selectedPiece = selectedSquare.getAttribute('data-piece');
@@ -75,13 +81,12 @@ const handleClick = (event) => {
       square.setAttribute('data-piece', selectedSquare.getAttribute('data-piece'));
       selectedSquare.removeAttribute('data-piece');
 
-      // Calculate coordinates of selected piece and target square
-      const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);
+      const fromIndex = Array.from(selectedSquare.parentElement.children).indexOf(selectedSquare);    
       const toIndex = Array.from(square.parentElement.children).indexOf(square);
-      const x1 = fromIndex % 5 + 1;
-      const y1 = Math.floor(fromIndex / 5) + 1;
-      const x2 = toIndex % 5 + 1;
-      const y2 = Math.floor(toIndex / 5) + 1;
+      const y1 = fromIndex % 5 + 1;
+      const x1 = Math.floor(fromIndex / 5) + 1;
+      const y2 = toIndex % 5 + 1;
+      const x2 = Math.floor(toIndex / 5) + 1;
 
       const moveData = `${x1},${y1},${x2},${y2}`;
       fetch('/move', {
@@ -114,6 +119,4 @@ socket.on('update_board', function (moveData) {
   fromSquare.removeAttribute('data-piece');
 });
 
-  // If we got here, no pieces were moved
-  previousBoardState = boardState;
-});
+
