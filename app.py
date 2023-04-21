@@ -46,11 +46,16 @@ def send_board_state():
     print('Sending board state')
     board_state = []
     for i in range(25):
-        coords = index_to_coord(i)
-        ser.write(f'{coords[0]} {coords[1]}\n'.encode('utf-8'))
         board_state.append(int(ser.readline().decode('utf-8').strip()))
     print(board_state)
-    socketio.emit('update', board_state)
+    
+    updated_squares = []
+    for i, value in enumerate(board_state):
+        row = (i // 5) + 1
+        col = (i % 5) + 1
+        updated_squares.append({"row": row, "col": col, "piece": value})
+    
+    socketio.emit('update_board', updated_squares)
     
     
 @app.route('/move', methods=['POST'])
